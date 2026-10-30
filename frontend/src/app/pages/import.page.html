@@ -1,0 +1,201 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">ОБНОВЛЕНИЕ КАТАЛОГА</span>
+    <h1>Импорт товаров</h1>
+    <p class="muted">Загрузите XLSX. Товары с тем же внешним кодом будут обновлены.</p>
+  </div>
+  <a mat-stroked-button routerLink="/products">Открыть каталог</a>
+</div>
+<div class="import-layout">
+  <section class="panel upload-panel">
+    <h2>Загрузить файл</h2>
+    <div
+      class="file-zone"
+      [class.drag-over]="dragDepth() > 0"
+      (dragenter)="dragEnter($event)"
+      (dragover)="dragOver($event)"
+      (dragleave)="dragLeave($event)"
+      (drop)="drop($event)"
+    >
+      <div class="file-symbol">XLSX</div>
+      <p>{{ file()?.name ?? 'Перетащите сюда файл XLSX' }}</p>
+      <span class="muted">До 10 МБ · до 10 000 строк · или выберите файл</span
+      ><label class="file-picker"
+        ><input
+          #input
+          type="file"
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          (change)="choose($event)"
+          [disabled]="uploading() || clearing()"
+          data-testid="file"
+        /><span>{{ file() ? 'Заменить файл' : 'Выбрать файл' }}</span></label
+      >
+      @if (file()) {
+      <button mat-button type="button" (click)="clearFile(input)" [disabled]="uploading() || clearing()">
+        Убрать файл
+      </button>
+      }
+    </div>
+    @if (error()) {
+    <p role="alert" class="error">{{ error() }}</p>
+    }
+    <button
+      mat-flat-button
+      (click)="upload()"
+      [disabled]="!file() || uploading() || clearing()"
+      data-testid="upload"
+    >
+      {{ uploading() ? 'Загружаем…' : 'Начать импорт' }}
+    </button>
+    <div class="hint">
+      <strong>Как подготовить файл</strong>
+      <p>Обязательные столбцы: «Внешний код», «Наименование», «Цена: Цена продажи», «Закупочная цена».</p>
+      <p>
+        Характеристики начинаются с «Доп. поле». Ссылки на фото разделяются запятыми. Обрабатывается первый
+        лист.
+      </p>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Обработка и результат</h2>
+    @if (job$ | async; as job) {
+    <div class="job-title">
+      <strong>{{ job.filename }}</strong
+      ><span
+        class="status"
+        [class.done]="job.status === 'completed'"
+        [class.failed]="job.status === 'failed'"
+        data-testid="job-status"
+        >{{ labels[job.status] }}</span
+      >
+    </div>
+    <mat-progress-bar mode="determinate" [value]="job.progress" aria-label="Прогресс импорта" />
+    <p class="muted">Обработано {{ job.processed }} из {{ job.total }} · {{ job.progress }}%</p>
+    <div class="stats">
+      <div><strong data-testid="created-count">{{ job.created }}</strong><span>создано</span></div>
+      <div><strong>{{ job.updated }}</strong><span>обновлено</span></div>
+      <div><strong>{{ job.invalid }}</strong><span>невалидных строк</span></div>
+    </div>
+    @if (job.failure) {
+    <p class="error" role="alert">{{ job.failure }}</p>
+    } @if (job.errors.length) {
+    <div class="report-heading">
+      <h3>Отчёт: {{ job.error_count ?? job.errors.length }} сообщений</h3>
+      <button mat-button (click)="downloadReport(job)" [disabled]="reportDownloading()">Скачать JSON</button>
+    </div>
+    <div class="report-scroll">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Строка</th>
+            <th>Тип</th>
+            <th>Сообщение</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (issue of reportPage()?.items ?? job.errors; track $index) {
+          <tr>
+            <td>{{ issue.row }}</td>
+            <td>{{ issue.severity === 'error' ? 'Ошибка' : 'Фото' }}</td>
+            <td>
+              {{ issue.message }} @if (issue.url) {
+              <span class="issue-url">{{ issue.url }}</span>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if ((job.error_count ?? job.errors.length) > 100) {
+    <div class="report-pagination" aria-label="Страницы отчёта">
+      <button
+        mat-button
+        (click)="loadErrors(job, (reportPage()?.page ?? 1) - 1)"
+        [disabled]="reportLoading() || (reportPage()?.page ?? 1) <= 1"
+      >
+        Назад
+      </button>
+      <span
+        >Страница {{reportPage()?.page ?? 1}} из {{reportPage()?.total_pages ?? reportTotalPages(job)}}</span
+      >
+      <button
+        mat-button
+        (click)="loadErrors(job, (reportPage()?.page ?? 1) + 1)"
+        [disabled]="reportLoading() || (reportPage()?.page ?? 1) * 100 >= (job.error_count ?? 0)"
+      >
+        Далее
+      </button>
+    </div>
+    } } @if (reportError()) {
+    <p role="alert" class="error">{{reportError()}}</p>
+    } @if (job.status === 'completed') {
+    <p class="success" role="status">Импорт завершён. Результат сохранён в каталоге.</p>
+    <a mat-flat-button routerLink="/products">Посмотреть товары</a>
+    } } @else {
+    <div class="empty">
+      <h3>Здесь появится результат</h3>
+      <p>Запустите импорт или выберите задачу из истории.</p>
+      @if (error()) { <button mat-stroked-button (click)="retryStatus()">Повторить запрос статуса</button> }
+    </div>
+    }
+  </section>
+</div>
+<section class="panel history">
+  @if (history$ | async; as history) {
+  <div class="history-heading">
+    <h2>Последние импорты</h2>
+    <button mat-button type="button" (click)="refreshHistory()" [disabled]="clearing()">
+      Обновить историю
+    </button>
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="clearError.set(''); clearDialog.showModal()"
+      [disabled]="uploading() || clearing() || hasActiveImports(history)"
+    >
+      Очистить все импорты
+    </button>
+  </div>
+  <p class="muted history-hint">
+    Очистка удаляет весь общий каталог товаров с характеристиками и фотографиями, а также историю ваших
+    импортов.
+  </p>
+  @if (hasActiveImports(history)) {
+  <p class="muted">Очистка доступна после завершения активных импортов.</p>
+  } @if (historyError()) {
+  <p role="alert" class="error">
+    {{historyError()}} <button mat-button (click)="refreshHistory()">Повторить</button>
+  </p>
+  } @else { @for (item of history; track item.id) {
+  <a class="history-row" routerLink="/import" [queryParams]="{job:item.id}"
+    ><span>{{item.filename}}</span><span class="muted">{{labels[item.status]}}</span></a
+  >
+  } @empty {
+  <p class="muted">История импортов пуста.</p>
+  } } } @if (clearSuccess()) {
+  <p role="status" class="success">{{clearSuccess()}}</p>
+  }
+</section>
+<dialog
+  #clearDialog
+  class="confirm-dialog"
+  aria-labelledby="clear-title"
+  (cancel)="clearing() && $event.preventDefault()"
+>
+  <h2 id="clear-title">Удалить импорты и весь каталог?</h2>
+  <p>
+    Будут удалены ВСЕ товары общего каталога, их характеристики и фотографии, а также ваша история импортов,
+    отчёты и XLSX. Каталог общий для всех аккаунтов. Отменить это действие нельзя.
+  </p>
+  @if (clearError()) {
+  <p role="alert" class="error">{{clearError()}}</p>
+  }
+  <div class="confirm-actions">
+    <button mat-stroked-button type="button" (click)="clearDialog.close()" [disabled]="clearing()" autofocus>
+      Отмена</button
+    ><button mat-flat-button type="button" (click)="clearHistory(clearDialog)" [disabled]="clearing()">
+      {{clearing() ? 'Очищаем…' : 'Удалить импорты и товары'}}
+    </button>
+  </div>
+</dialog>

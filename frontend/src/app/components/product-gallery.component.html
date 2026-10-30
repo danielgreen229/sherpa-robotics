@@ -1,0 +1,80 @@
+<div class="shop-gallery">
+  <div class="main-photo">
+    @if (active(); as image) {
+      <button
+        class="photo-zoom"
+        type="button"
+        (click)="zoom.showModal()"
+        aria-label="Увеличить фотографию"
+        (keydown.arrowleft)="move(-1); $event.preventDefault()"
+        (keydown.arrowright)="move(1); $event.preventDefault()"
+      >
+        <img [src]="image.path" [alt]="name()" (error)="failed(image.path)" /><span class="zoom-hint"
+          >Увеличить ↗</span
+        >
+      </button>
+    } @else {
+      <div class="photo-placeholder" role="img" [attr.aria-label]="'Нет фото: ' + name()">
+        <span class="placeholder-shape">◇</span><strong>Фотография отсутствует</strong>
+        <p>У товара пока нет доступных изображений</p>
+      </div>
+    }
+    @if (available().length > 1) {
+      <div class="photo-controls">
+        <button mat-button type="button" (click)="move(-1)" aria-label="Предыдущее фото">←</button
+        ><span>{{ activeIndex() + 1 }} / {{ available().length }}</span
+        ><button mat-button type="button" (click)="move(1)" aria-label="Следующее фото">→</button>
+      </div>
+    }
+  </div>
+  @if (available().length > 1) {
+    <div #thumbnails class="photo-thumbs" aria-label="Фотографии товара">
+      @for (image of available(); track $index) {
+        <button
+          type="button"
+          [class.selected]="$index === activeIndex()"
+          [attr.aria-label]="'Фото ' + ($index + 1)"
+          [attr.aria-pressed]="$index === activeIndex()"
+          (click)="index.set($index)"
+        >
+          <img
+            [src]="image.path"
+            [alt]="'Фото ' + ($index + 1)"
+            loading="lazy"
+            decoding="async"
+            (error)="failed(image.path)"
+          />
+        </button>
+      }
+    </div>
+  }
+  <dialog
+    aria-label="Просмотр фотографий товара"
+    #zoom
+    class="image-dialog"
+    (click)="backdrop($event, zoom)"
+    (keydown.arrowleft)="move(-1)"
+    (keydown.arrowright)="move(1)"
+  >
+    <button
+      mat-flat-button
+      type="button"
+      class="dialog-close"
+      (click)="zoom.close()"
+      aria-label="Закрыть фотографию"
+    >
+      Закрыть ×
+    </button>
+    @if (active(); as image) {
+      <img [src]="image.path" [alt]="name()" />
+    }
+    <div class="dialog-navigation">
+      <button mat-button (click)="move(-1)" [disabled]="available().length < 2" aria-label="Предыдущее фото">
+        ←</button
+      ><span>{{ activeIndex() + 1 }} / {{ available().length }}</span
+      ><button mat-button (click)="move(1)" [disabled]="available().length < 2" aria-label="Следующее фото">
+        →
+      </button>
+    </div>
+  </dialog>
+</div>

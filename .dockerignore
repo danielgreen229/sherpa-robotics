@@ -1,0 +1,12 @@
+.git
+.env
+**/node_modules
+**/vendor
+**/dist
+**/.angular
+**/test-results
+**/playwright-report
+backend/var/*
+__MACOSX
+**/._*
+**/.DS_Store

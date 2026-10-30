@@ -1,0 +1,25 @@
+<span class="copy-code" [class.compact]="compact()">
+  <span class="code" [attr.title]="code()">{{ code() }}</span>
+  <button
+    mat-button
+    type="button"
+    class="copy-button"
+    (click)="copy()"
+    [attr.aria-label]="'Скопировать внешний код ' + code()"
+    [attr.title]="copied() ? 'Скопировано' : 'Скопировать внешний код'"
+  >
+    @if (compact()) {
+      @if (copied()) {
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8" /></svg>
+      } @else {
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <rect x="7" y="6" width="9" height="11" rx="2" />
+          <path d="M12 6V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" />
+        </svg>
+      }
+    } @else {
+      {{ copied() ? '✓ Скопировано' : 'Копировать' }}
+    }
+  </button>
+</span>
+<span class="sr-only" role="status">{{ message() }}</span>

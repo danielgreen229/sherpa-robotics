@@ -1,0 +1,81 @@
+name: product-importer
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-catalog}
+      POSTGRES_USER: ${DB_USER:-catalog}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-catalog_local_password}
+      TZ: UTC
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  rabbitmq:
+    image: rabbitmq:4.1-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-catalog}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-catalog_queue_password}
+    volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  app:
+    build:
+      context: .
+      dockerfile: docker/php.Dockerfile
+    image: product-importer-php:local
+    environment: &app-env
+      DATABASE_URL: postgresql://${DB_USER:-catalog}:${DB_PASSWORD:-catalog_local_password}@db:5432/${DB_NAME:-catalog}
+      MESSENGER_TRANSPORT_DSN: amqp://${RABBITMQ_USER:-catalog}:${RABBITMQ_PASSWORD:-catalog_queue_password}@rabbitmq:5672/%2f/catalog_imports
+      JWT_SECRET: ${JWT_SECRET:?Run ./setup.sh first or create .env from .env.example}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-CatalogDemo2026!}
+      STORAGE_PATH: /data
+      IMPORT_RATE_LIMIT: ${IMPORT_RATE_LIMIT:-5}
+      MAX_UPLOAD_MB: 10
+    volumes: ["catalog-storage:/data"]
+    depends_on:
+      db: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "php", "bin/console", "app:health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+  worker:
+    image: product-importer-php:local
+    environment: *app-env
+    command: ["php", "bin/worker.php"]
+    volumes: ["catalog-storage:/data"]
+    depends_on:
+      app: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    restart: unless-stopped
+    stop_grace_period: 60s
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    ports: ["${APP_PORT:-8080}:80"]
+    volumes: ["catalog-storage:/data:ro"]
+    depends_on:
+      app: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  catalog-storage:

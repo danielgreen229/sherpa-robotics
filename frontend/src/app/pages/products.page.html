@@ -1,0 +1,165 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">КАТАЛОГ</span>
+    <h1>Товары</h1>
+    <p class="muted">Поиск, цены и характеристики импортированных товаров.</p>
+  </div>
+  <div class="heading-actions">
+    <button mat-stroked-button (click)="export()" [disabled]="exporting()">
+      {{exporting() ? 'Готовим файл…' : 'Экспорт XLSX'}}
+    </button>
+    <a mat-flat-button routerLink="/import">Импортировать товары</a>
+  </div>
+</div>
+<section
+  #listStart
+  class="panel catalog-panel"
+  tabindex="-1"
+  aria-label="Список товаров"
+  [attr.aria-busy]="(vm$ | async)?.loading"
+>
+  <form class="filters" (ngSubmit)="search()">
+    <mat-form-field appearance="outline" class="search-field"
+      ><mat-label>Название товара</mat-label
+      ><input matInput name="name" [(ngModel)]="name" data-testid="search"
+    /></mat-form-field>
+    <mat-form-field appearance="outline"
+      ><mat-label>Цена от</mat-label
+      ><input matInput name="min" type="number" min="0" step="0.01" [(ngModel)]="min" data-testid="price-min"
+    /></mat-form-field>
+    <mat-form-field appearance="outline"
+      ><mat-label>Цена до</mat-label
+      ><input matInput name="max" type="number" min="0" step="0.01" [(ngModel)]="max" data-testid="price-max"
+    /></mat-form-field>
+    <button mat-flat-button type="submit">Найти</button
+    ><button mat-button type="button" (click)="reset()">Сбросить</button>
+  </form>
+  @if (exportError()) {
+  <p role="alert" class="error">{{exportError()}}</p>
+  } @if (vm$ | async; as vm) {
+  <div class="catalog-toolbar">
+    <div class="catalog-count" aria-live="polite">
+      <strong>Найдено: {{vm.total}}</strong><small>Страница {{filters.page}} из {{vm.totalPages || 1}}</small>
+    </div>
+    <div class="view-switch" role="group" aria-label="Вид каталога">
+      <button
+        type="button"
+        [class.selected]="view() === 'list'"
+        [attr.aria-pressed]="view() === 'list'"
+        (click)="setView('list')"
+      >
+        <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 5h14M3 10h14M3 15h14" /></svg> Список
+      </button>
+      <button
+        type="button"
+        [class.selected]="view() === 'grid3'"
+        [attr.aria-pressed]="view() === 'grid3'"
+        (click)="setView('grid3')"
+      >
+        <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2 3h4v14H2zM8 3h4v14H8zM14 3h4v14h-4z" /></svg>
+        По 3
+      </button>
+      <button
+        type="button"
+        [class.selected]="view() === 'grid5'"
+        [attr.aria-pressed]="view() === 'grid5'"
+        (click)="setView('grid5')"
+      >
+        <svg aria-hidden="true" viewBox="0 0 20 20">
+          <path d="M2 3h2v14H2zM6 3h2v14H6zM10 3h2v14h-2zM14 3h2v14h-2zM18 3v14" />
+        </svg>
+        По 5
+      </button>
+    </div>
+  </div>
+  @if (vm.loading) { <mat-progress-bar mode="indeterminate" aria-label="Загрузка товаров" /> } @if (vm.error)
+  {
+  <div class="empty error" role="alert">
+    {{vm.error}}<button mat-button (click)="reload()">Повторить</button>
+  </div>
+  } @if (!vm.error && vm.items.length) { @if (view() === 'list') {
+  <div class="table-scroll">
+    <table class="product-table">
+      <caption class="sr-only">
+        Импортированные товары, цены и внешние коды
+      </caption>
+      <thead>
+        <tr>
+          <th>Товар</th>
+          <th>Внешний код</th>
+          <th class="numeric">Цена</th>
+          <th class="numeric">Скидка по ТЗ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (product of vm.items; track product.id) {
+        <tr data-testid="product-row">
+          <td>
+            <a
+              class="product-list-link product-link"
+              [routerLink]="['/products', product.id]"
+              [queryParams]="{returnTo: router.url}"
+              ><app-product-thumbnail [src]="product.thumbnail?.path ?? ''" [name]="product.name" /><span
+                >{{product.name}}</span
+              ></a
+            >
+          </td>
+          <td><app-copy-code [code]="product.external_code" /></td>
+          <td class="numeric price">{{+product.price | currency:'RUB':'symbol':'1.2-2':'ru'}}</td>
+          <td class="numeric"><span class="discount">{{product.discount}}%</span></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  } @else {
+  <div class="product-grid" [class.columns-five]="view() === 'grid5'" aria-label="Сетка товаров">
+    @for (product of vm.items; track product.id) {
+    <article class="catalog-card" data-testid="product-card">
+      <a
+        class="card-main-link"
+        [routerLink]="['/products', product.id]"
+        [queryParams]="{returnTo: router.url}"
+        [attr.title]="product.name"
+      >
+        <div class="card-image-link">
+          <app-product-thumbnail [src]="product.thumbnail?.path ?? ''" [name]="product.name" /><span
+            class="card-open-hint"
+            aria-hidden="true"
+            >↗</span
+          >
+        </div>
+        <div class="card-content">
+          <h2 class="card-title">{{product.name}}</h2>
+          <div class="card-pricing">
+            <strong class="card-price">{{+product.price | currency:'RUB':'symbol':'1.2-2':'ru'}}</strong
+            ><span class="card-discount">Скидка {{product.discount}}%</span>
+          </div>
+        </div>
+      </a>
+      <div class="card-footer"><app-copy-code [code]="product.external_code" [compact]="true" /></div>
+    </article>
+    }
+  </div>
+  } } @if (!vm.loading && !vm.error && !vm.items.length) {
+  <div class="empty">
+    <h2>Товары не найдены</h2>
+    <p>Измените фильтры или загрузите Excel с товарами.</p>
+    <a mat-stroked-button routerLink="/import">Перейти к импорту</a>
+  </div>
+  }
+  <div class="table-footer">
+    <span class="muted">Страниц: {{vm.totalPages}}</span
+    ><mat-paginator
+      [length]="vm.total"
+      [pageIndex]="filters.page - 1"
+      [pageSize]="filters.limit"
+      [pageSizeOptions]="[10,20,50,100]"
+      [disabled]="vm.loading"
+      [showFirstLastButtons]="true"
+      (page)="page($event)"
+      aria-label="Страницы товаров"
+    />
+  </div>
+  }
+</section>

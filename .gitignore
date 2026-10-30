@@ -1,0 +1,16 @@
+.env
+backend/vendor/
+backend/var/*
+!backend/var/.gitkeep
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/out-tsc/
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+.DS_Store
+
+# macOS Finder / AppleDouble metadata
+__MACOSX/
+._*

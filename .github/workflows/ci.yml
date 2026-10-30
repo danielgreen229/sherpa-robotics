@@ -1,0 +1,43 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Frontend formatting
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run format:check
+      - name: Create environment and start complete Docker stack
+        run: sh setup.sh
+      - name: Unit and integration tests
+        run: docker compose exec -T app vendor/bin/phpunit
+      - name: PHPStan level 5
+        run: docker compose exec -T app vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+      - name: PHP style
+        run: docker compose exec -T app vendor/bin/php-cs-fixer fix --dry-run --diff
+      - name: Browser tests against PostgreSQL and RabbitMQ
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox webkit
+          npm test
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --no-color
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+      - name: Stop services
+        if: always()
+        run: docker compose down

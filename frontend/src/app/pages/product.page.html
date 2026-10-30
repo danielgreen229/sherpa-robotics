@@ -1,0 +1,115 @@
+<nav class="breadcrumbs" aria-label="Хлебные крошки">
+  <a routerLink="/products" [queryParams]="returnParams">← Каталог товаров</a><span aria-hidden="true">/</span
+  ><span>Карточка товара</span>
+</nav>
+@if (state$ | async; as state) { @if (state.loading) {
+<div class="panel detail-loading" role="status">
+  <mat-progress-bar mode="indeterminate" />
+  <p>Загружаем товар…</p>
+</div>
+} @if (state.error) {
+<div class="panel empty error" role="alert">
+  {{state.error}}
+  <p><a mat-button routerLink="/products" [queryParams]="returnParams">Вернуться в каталог</a></p>
+</div>
+} @if (state.product; as product) {
+<div class="shop-layout">
+  <header class="shop-title">
+    <div class="product-heading">
+      <span class="eyebrow">{{brand(product) || 'ТОВАР ИЗ КАТАЛОГА'}}</span
+      ><span class="product-id">ID {{product.id}}</span>
+    </div>
+    <h1 data-testid="product-title">{{product.name}}</h1>
+    <div class="price-section">
+      <span class="price-label">Цена продажи</span>
+      <div class="detail-price">{{+product.price | currency:'RUB':'symbol':'1.2-2':'ru'}}</div>
+    </div>
+  </header>
+  <section class="gallery-panel" aria-label="Галерея товара">
+    <app-product-gallery [images]="product.images ?? []" [name]="product.name" />
+  </section>
+  <article class="panel shop-summary">
+    <div class="product-code">
+      <span class="muted">Внешний код</span><app-copy-code [code]="product.external_code" />
+    </div>
+    @if (quickAttributes(product).length) {
+    <dl class="quick-attributes">
+      @for (attribute of quickAttributes(product); track $index) {
+      <div>
+        <dt>{{attribute.key}}</dt>
+        <dd>{{attribute.value}}</dd>
+      </div>
+      }
+    </dl>
+    }
+    <a
+      mat-stroked-button
+      class="details-link"
+      [routerLink]="[]"
+      fragment="characteristics"
+      queryParamsHandling="preserve"
+      >Все характеристики ↓</a
+    >
+    <div class="catalog-calculation">
+      <h2>Данные из файла</h2>
+      <dl class="pricing-details">
+        <div>
+          <dt>Закупочная цена</dt>
+          <dd>{{+product.purchase_price | currency:'RUB':'symbol':'1.2-2':'ru'}}</dd>
+        </div>
+        <div>
+          <dt>Скидка</dt>
+          <dd>{{product.discount}}%</dd>
+        </div>
+      </dl>
+      <p>Скидка рассчитана по формуле из задания.</p>
+    </div>
+  </article>
+</div>
+<nav class="detail-navigation" aria-label="Разделы товара">
+  <a [routerLink]="[]" fragment="description" queryParamsHandling="preserve">Описание</a
+  ><a [routerLink]="[]" fragment="characteristics" queryParamsHandling="preserve">Характеристики</a
+  ><a [routerLink]="[]" fragment="image-sources" queryParamsHandling="preserve"
+    >Изображения <span>{{product.images?.length || 0}}</span></a
+  >
+</nav>
+<div class="product-information">
+  <section id="description" class="description">
+    <h2>Описание</h2>
+    <p>{{product.description || 'Описание не указано.'}}</p>
+  </section>
+  <section id="characteristics" class="attributes">
+    <h2>Характеристики</h2>
+    <dl>
+      @for (attribute of product.attributes ?? []; track $index) {
+      <div>
+        <dt>{{attribute.key}}</dt>
+        <dd>{{attribute.value}}</dd>
+      </div>
+      } @empty {
+      <p class="muted">Дополнительные характеристики не указаны.</p>
+      }
+    </dl>
+  </section>
+  <section id="image-sources" class="image-sources">
+    <h2>Изображения</h2>
+    <p class="muted">
+      Фотографий в каталоге: {{product.images?.length || 0}}. Для увеличения нажмите на фото в галерее.
+    </p>
+    <details>
+      <summary>Исходные ссылки и локальные файлы</summary>
+      <ol>
+        @for (image of product.images ?? []; track $index) {
+        <li>
+          <a [href]="sourceUrl(image.url)" target="_blank" rel="noopener noreferrer"
+            >Источник {{ $index + 1 }}</a
+          ><span>{{image.url}}</span><code>{{image.path}}</code>
+        </li>
+        } @empty {
+        <p class="muted">Изображения не загружены.</p>
+        }
+      </ol>
+    </details>
+  </section>
+</div>
+} }

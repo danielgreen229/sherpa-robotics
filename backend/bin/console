@@ -1,0 +1,74 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use App\Entity\Product;
+use App\Entity\ProductAttribute;
+use App\Entity\ProductImage;
+use App\Support\Config;
+use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
+use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
+use Doctrine\Migrations\DependencyFactory;
+use Doctrine\Migrations\Tools\Console\ConsoleRunner;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+/** @var App\Runtime $runtime */
+$runtime = require dirname(__DIR__) . '/bootstrap.php';
+$console = new Application('Catalog console', '1.0.0');
+$factory = DependencyFactory::fromConnection(new ConfigurationArray(require dirname(__DIR__) . '/migrations.php'), new ExistingConnection($runtime->database->connection()));
+ConsoleRunner::addCommands($console, $factory);
+$console->add((new Command('app:user'))->setDescription('Create the configured admin user if absent')->setCode(function (InputInterface $input, OutputInterface $output) use ($runtime): int {
+    $email = Config::env('ADMIN_EMAIL', 'admin@example.com');
+    $password = Config::env('ADMIN_PASSWORD');
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 12) {
+        throw new RuntimeException('Configure ADMIN_EMAIL and ADMIN_PASSWORD (at least 12 characters).');
+    }
+    $runtime->users->create($email, $password);
+    $output->writeln('User is ready: ' . $email);
+    return Command::SUCCESS;
+}));
+$console->add((new Command('app:health'))->setCode(function () use ($runtime): int {
+    $runtime->database->connection()->executeQuery('SELECT 1 FROM users LIMIT 1');
+    return Command::SUCCESS;
+}));
+$console->add((new Command('app:fixtures'))->setDescription('Add 3 deterministic sample products, attributes and local images; no deletion')->setCode(function (InputInterface $input, OutputInterface $output) use ($runtime): int {
+    $runtime->products->withCatalogWrite(function () use ($runtime): void {
+        $directory = Config::storage() . '/media';
+        if (!is_dir($directory)) {
+            mkdir($directory, 0775, true);
+        }
+        $image = imagecreatetruecolor(400, 400);
+        imagefill($image, 0, 0, imagecolorallocate($image, 232, 241, 255));
+        imagestring($image, 5, 120, 190, 'DEMO PRODUCT', imagecolorallocate($image, 33, 94, 208));
+        ob_start();
+        imagepng($image);
+        $bytes = (string) ob_get_clean();
+        $path = '/media/' . hash('sha256', $bytes) . '.png';
+        file_put_contents(Config::storage() . $path, $bytes);
+        foreach ([['demo-shirt', 'Демонстрационная футболка', '1490.00', '990.00'], ['demo-bag', 'Демонстрационная сумка', '2490.00', '1590.00'], ['demo-cap', 'Демонстрационная кепка', '990.00', '590.00']] as [$code, $name, $price, $purchase]) {
+            $data = App\Service\ProductData::fromArray(['external_code' => $code, 'name' => $name, 'description' => 'Демонстрационные данные. Можно повторно запустить fixtures без дубликатов.', 'price' => $price, 'purchase_price' => $purchase, 'attributes' => ['Бренд' => 'Demo', 'Цвет' => 'Синий']]);
+            $runtime->products->save($data, [['url' => 'https://example.com/fixture.png', 'path' => $path]]);
+        }
+    });
+    $output->writeln('Fixtures ready: products, product_attributes, product_images.');
+    return Command::SUCCESS;
+}));
+$console->add((new Command('app:gc'))->setDescription('Delete unreferenced images older than 24 hours')->setCode(function (InputInterface $input, OutputInterface $output) use ($runtime): int {
+    $count = (new App\Support\CatalogLock($runtime->database->connection()))->exclusive(function () use ($runtime): int {
+    $count = 0;
+    foreach (glob(Config::storage() . '/media/*') ?: [] as $file) {
+        if (is_file($file) && filemtime($file) < time() - 86400 && !$runtime->database->connection()->fetchOne('SELECT 1 FROM product_images WHERE path = ? LIMIT 1', ['/media/' . basename($file)])) {
+            unlink($file);
+            ++$count;
+        }
+    }
+    return $count;
+    });
+    $output->writeln('Deleted unused media files: ' . $count);
+    return Command::SUCCESS;
+}));
+$console->run();

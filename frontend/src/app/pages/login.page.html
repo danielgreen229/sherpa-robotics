@@ -1,0 +1,43 @@
+<div class="login-layout">
+  <section class="login-intro">
+    <span class="eyebrow">РАБОТА С КАТАЛОГОМ</span>
+    <h1>Все товары.<br />В одном месте.</h1>
+    <p>Загружайте Excel, следите за обработкой и работайте с актуальным каталогом.</p>
+    <div class="intro-stat">XLSX <span>товары, характеристики и изображения</span></div>
+  </section>
+  <section class="panel login-panel">
+    <h2>Вход в систему</h2>
+    <p class="muted">Используйте учётные данные из настройки проекта.</p>
+    <form #form="ngForm" (ngSubmit)="login()">
+      <mat-form-field appearance="outline"
+        ><mat-label>Email</mat-label
+        ><input
+          matInput
+          name="email"
+          type="email"
+          autocomplete="username"
+          [(ngModel)]="email"
+          required
+          email
+          data-testid="email"
+      /></mat-form-field>
+      <mat-form-field appearance="outline"
+        ><mat-label>Пароль</mat-label
+        ><input
+          matInput
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          [(ngModel)]="password"
+          required
+          data-testid="password"
+      /></mat-form-field>
+      @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+      }
+      <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">
+        {{ busy() ? 'Входим…' : 'Войти' }}
+      </button>
+    </form>
+  </section>
+</div>

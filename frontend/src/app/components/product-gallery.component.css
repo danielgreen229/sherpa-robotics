@@ -1,0 +1,253 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.shop-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.main-photo {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #f0f2f4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.photo-zoom {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-in;
+  min-width: 0;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.photo-zoom img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+  object-fit: contain;
+  object-position: center;
+}
+.zoom-hint {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  background: #ffffffde;
+  backdrop-filter: blur(16px);
+  border: 1px solid #ffffffef;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 11px;
+  color: #4e6079;
+  box-shadow: 0 2px 8px #273e5909;
+  pointer-events: none;
+}
+.photo-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
+  width: 100%;
+  background: #ffffffb8;
+  border-top: 1px solid #e7ebf0;
+  color: #576b85;
+  font-size: 12px;
+}
+.photo-controls button {
+  min-width: 40px;
+  height: 36px;
+  border: 1px solid #dfe6ee;
+  background: #fff;
+  color: #45618a;
+  border-radius: 12px;
+}
+.photo-thumbs {
+  display: flex;
+  gap: 10px;
+  overflow: auto;
+  padding: 3px;
+  scrollbar-width: thin;
+}
+.photo-thumbs button {
+  flex: 0 0 62px;
+  width: 62px;
+  height: 80px;
+  padding: 2px;
+  border: 1px solid #e1e6ed;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f3f5;
+  cursor: pointer;
+}
+.photo-thumbs button.selected {
+  border-color: #155cd2;
+  box-shadow: 0 0 0 2px #dce8fc;
+}
+.photo-thumbs img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.photo-placeholder {
+  min-height: 340px;
+  width: 100%;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  color: #718198;
+}
+.placeholder-shape {
+  font-size: 60px;
+  color: #a4b2c4;
+}
+.photo-placeholder strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+.photo-placeholder p {
+  font-size: 12px;
+  max-width: 230px;
+  margin: 12px 0 0;
+}
+.image-dialog {
+  width: min(1100px, 94vw);
+  max-width: 94vw;
+  max-height: 94svh;
+  padding: 58px 20px 12px;
+  border: 1px solid #ffffffc9;
+  border-radius: 20px;
+  background: #f7f9fbdc;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 30px 100px #0b182e44;
+  overflow: auto;
+}
+.image-dialog::backdrop {
+  background: #19263c9c;
+  backdrop-filter: blur(10px);
+}
+.image-dialog > img {
+  display: block;
+  width: 100%;
+  height: min(70svh, 800px);
+  object-fit: contain;
+  border-radius: 10px;
+}
+.dialog-close {
+  position: absolute !important;
+  top: 12px;
+  right: 14px;
+}
+.dialog-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 0 0;
+  font-size: 12px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .photo-thumbs button:hover {
+    border-color: #83a2cf;
+  }
+  .photo-controls button:hover {
+    background: #f4f8fe;
+  }
+}
+@media (max-width: 800px) {
+  .main-photo {
+    border-radius: 16px;
+  }
+  .shop-gallery {
+    gap: 12px;
+  }
+  .photo-placeholder {
+    min-height: 280px;
+  }
+}
+@media (max-width: 420px) {
+  .zoom-hint {
+    right: 10px;
+    top: 10px;
+    font-size: 10px;
+    padding: 8px 10px;
+  }
+  .photo-thumbs button {
+    flex-basis: 54px;
+    width: 54px;
+    height: 70px;
+  }
+  .photo-placeholder {
+    min-height: 250px;
+  }
+  .image-dialog {
+    padding-inline: 10px;
+  }
+}
+
+/* Desktop height is allocated by the product information, never by intrinsic image size. */
+@media (min-width: 801px) {
+  :host {
+    height: 100%;
+    min-height: 0;
+  }
+  .shop-gallery {
+    height: 100%;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .shop-gallery:not(:has(.photo-thumbs)) {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .main-photo {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .photo-zoom {
+    height: 100%;
+    min-height: 0;
+  }
+  .photo-zoom img {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: contain;
+    object-position: center;
+  }
+  .photo-placeholder {
+    height: 100%;
+    min-height: 0;
+  }
+  .photo-thumbs {
+    height: 86px;
+    min-height: 0;
+    padding: 3px;
+  }
+  .photo-thumbs button:first-child {
+    margin-inline-start: auto;
+  }
+  .photo-thumbs button:last-child {
+    margin-inline-end: auto;
+  }
+}

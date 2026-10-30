@@ -1,0 +1,11 @@
+@if (src() && failedPath() !== src()) {
+  <img [src]="src()" [alt]="name()" loading="lazy" decoding="async" (error)="failedPath.set(src())" />
+} @else {
+  <span class="thumbnail-empty" role="img" [attr.aria-label]="'Нет фото: ' + name()"
+    ><svg aria-hidden="true" viewBox="0 0 48 48">
+      <rect x="5" y="7" width="38" height="34" rx="5" />
+      <circle cx="17" cy="18" r="4" />
+      <path d="m7 35 11-10 7 6 6-8 11 12" /></svg
+    ><small>Нет фото</small></span
+  >
+}

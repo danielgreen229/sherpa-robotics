@@ -1,0 +1,22 @@
+<header class="topbar">
+  <a routerLink="/products" class="brand"
+    ><span class="brand-mark">К</span> Каталог<span class="brand-sub">Импорт и управление товарами</span></a
+  >
+  @if (auth.session(); as session) {
+    <nav aria-label="Основная навигация">
+      <a mat-button routerLink="/products" routerLinkActive="active">Товары</a
+      ><a mat-button routerLink="/import" routerLinkActive="active">Импорт</a>
+    </nav>
+    <div class="account">
+      <span>{{ session.email }}</span
+      ><button mat-button (click)="auth.logout()">Выйти</button>
+    </div>
+  }
+</header>
+@if (errors.message()) {
+  <div role="alert" class="global-error">
+    {{ errors.message() }} <button mat-button (click)="errors.message.set('')">Закрыть</button>
+  </div>
+}
+<main><router-outlet /></main>
+<footer>Каталог товаров · Slim / Doctrine / Angular</footer>
